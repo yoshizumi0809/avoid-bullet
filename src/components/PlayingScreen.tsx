@@ -4,7 +4,18 @@ import { Bullet } from "@/types/bullet";
 import { gameState } from "@/types/gameState";
 import { useState, useEffect, useRef } from "react";
 import React from "react";
-import { BULLET_SIZE, BULLET_SPAWN_INTERVAL, GAME_AREA_SIZE, MAX_COORD, MIN_COORD, PLAYER_SIZE, PLAYER_SPEED } from "../constants/gameConfigs";
+import { 
+    INITIAL_LIVES, 
+    BULLET_SIZE, 
+    BULLET_SPAWN_INTERVAL, 
+    GAME_AREA_SIZE, 
+    MAX_COORD, 
+    MIN_COORD, 
+    PLAYER_SIZE, 
+    PLAYER_SPEED,
+    HOMING_BULLET_SPEED,
+    HOMING_PROBABILITY
+} from "../constants/gameConfigs";
 import { createNewBullet } from "@/utils/createNewBullet";
 
 type PlayingScreenProps = {
@@ -14,7 +25,6 @@ type PlayingScreenProps = {
     setSurvivalTime: (time: number) => void;
 };
 
-const INITIAL_LIVES = 5;
 
 export default function PlayingScreen(props: PlayingScreenProps) {
     const [coordinates, setCoordinates] = useState<{x: number; y: number}>({x: 250, y: 250});
@@ -99,11 +109,28 @@ export default function PlayingScreen(props: PlayingScreenProps) {
             let hitCountInThisFrame = 0;
 
             const nextBullets = bulletsRef.current
-                .map((bullet) => ({
-                    ...bullet,
-                    x: bullet.x + bullet.vx,
-                    y: bullet.y + bullet.vy
-                }))
+                .map((bullet) => {
+                    let nextVx = bullet.vx;
+                    let nextVy = bullet.vy;
+
+                    // ホーミング弾の場合、プレイヤーの方向へ速度ベクトルを修正
+                    if (bullet.type === 'homing') {
+                        const dx = player.x - bullet.x;
+                        const dy = player.y - bullet.y;
+                        const angle = Math.atan2(dy, dx);
+
+                        nextVx = Math.cos(angle) * HOMING_BULLET_SPEED;
+                        nextVy = Math.sin(angle) * HOMING_BULLET_SPEED;
+                    }
+
+                    return {
+                        ...bullet,
+                        vx: nextVx,
+                        vy: nextVy,
+                        x: bullet.x + nextVx,
+                        y: bullet.y + nextVy
+                    };
+                })
                 .filter((bullet) => {
                     if (
                         bullet.x < MIN_COORD ||
@@ -128,7 +155,16 @@ export default function PlayingScreen(props: PlayingScreenProps) {
             // 3. 新しい弾の生成
             frameCounter++;
             if(frameCounter % BULLET_SPAWN_INTERVAL === 0) {
-                const newBullet = createNewBullet();
+                const baseBullet = createNewBullet();
+                
+                // 確率でホーミング弾にする
+                const isHoming = Math.random() < HOMING_PROBABILITY;
+
+                const newBullet: Bullet = {
+                    ...baseBullet,
+                    type: isHoming ? 'homing' : 'normal',
+                };
+
                 nextBullets.push(newBullet);
                 frameCounter = 0;
             }
@@ -173,16 +209,19 @@ export default function PlayingScreen(props: PlayingScreenProps) {
                 }}
             />
             
-            {/* 弾: シンプルな黄色丸 */}
+            {/* 弾: タイプによって色を変える */}
             {bullets.map(bullet => (
                 <div
                     key={bullet.id}
-                    className="absolute bg-yellow-400 rounded-full shadow-sm"
+                    className={`absolute rounded-full shadow-sm ${
+                        bullet.type === 'homing' ? 'bg-purple-500' : 'bg-yellow-400'
+                    }`}
                     style={{
                         width: BULLET_SIZE,
                         height: BULLET_SIZE,
-                        left: bullet.x - 2.5,
-                        top: bullet.y - 2.5,
+                        // 正確な中心座標にするため、サイズ/2 を引く形に修正
+                        left: bullet.x - BULLET_SIZE / 2,
+                        top: bullet.y - BULLET_SIZE / 2,
                         pointerEvents: 'none',
                         zIndex: 10
                     }}
