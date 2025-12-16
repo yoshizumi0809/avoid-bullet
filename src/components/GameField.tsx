@@ -3,22 +3,27 @@
 import { useRef, useState } from "react";
 import ScreenMode from "./ScreenMode";
 import { gameState } from "@/types/gameState";
+import { GAME_AREA_HEIGHT, GAME_AREA_WIDTH } from "@/constants/gameConfigs";
+
 
 export default function GameField() {
-    const [gameState, setGameState] = useState<gameState>('title');
+  const [gameState, setGameState] = useState<gameState>('title');
+  const gameFieldRef = useRef<HTMLDivElement>(null);
 
-    const gameFieldRef = useRef<HTMLDivElement>(null);
-
-    return (
-        <div 
-            className="absolute m-12 top-5 left-5 w-[500px] h-[500px] border-4 border-black"
-            ref={gameFieldRef}
-        >
-            <ScreenMode 
-                gameState={gameState}
-                setGameState={setGameState}
-                gameFieldRef={gameFieldRef}
-            />
-        </div>
-    );
+  return (
+    <div
+      ref={gameFieldRef}
+      className="absolute m-12 top-5 left-5 border-4 border-black"
+      style={{
+        width: `${GAME_AREA_WIDTH}px`,
+        height: `${GAME_AREA_HEIGHT}px`,
+      }}
+    >
+      <ScreenMode
+        gameState={gameState}
+        setGameState={setGameState}
+        gameFieldRef={gameFieldRef}
+      />
+    </div>
+  );
 }

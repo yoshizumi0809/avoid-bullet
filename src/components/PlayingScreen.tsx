@@ -3,34 +3,41 @@
 import { Bullet } from "@/types/bullet";
 import { gameState } from "@/types/gameState";
 import { useState, useEffect, useRef } from "react";
-import React from "react"; // Reactの型を使うためインポート
+import React from "react";
+import { BULLET_SIZE, BULLET_SPAWN_INTERVAL, GAME_AREA_SIZE, MAX_COORD, MIN_COORD, PLAYER_SIZE, PLAYER_SPEED } from "../constants/gameConfigs";
+import { createNewBullet } from "@/utils/createNewBullet";
 
-// Propsの型を適切に再定義します（ScreenModeから渡されるRefを受け取る）
 type PlayingScreenProps = {
-    gameState: gameState; // 適切な型に修正してください
-    setGameState: (state: any) => void; // 適切な型に修正してください
+    gameState: gameState;
+    setGameState: React.Dispatch<React.SetStateAction<gameState>>;
     gameFieldRef: React.RefObject<HTMLDivElement>;
+    setSurvivalTime: (time: number) => void;
 };
 
-// ゲーム定数
-const PLAYER_SPEED = 2; // ピクセル/フレームの移動速度
-const PLAYER_SIZE = 20; 
-const GAME_AREA_SIZE = 500; // GameFieldの幅・高さと一致させてください
+const INITIAL_LIVES = 5;
 
 export default function PlayingScreen(props: PlayingScreenProps) {
-    // プレイヤーの位置 (初期位置を中央付近に設定)
     const [coordinates, setCoordinates] = useState<{x: number; y: number}>({x: 250, y: 250});
-
-    // 弾の状態
     const [bullets, setBullets] = useState<Bullet[]>([]);
+    const [lives, setLives] = useState<number>(INITIAL_LIVES);
     
-    // 💡 1. 押されているキーの状態を保持するRef (再レンダリング不要)
+    // 画面上のタイマー表示用
+    const [currentTime, setCurrentTime] = useState<number>(0);
+
+    const bulletsRef = useRef<Bullet[]>([]);
+    const livesRef = useRef<number>(INITIAL_LIVES);
+    
+    // ゲーム開始時間を記録
+    const startTimeRef = useRef<number>(Date.now());
+    
     const keysPressed = useRef({ w: false, a: false, s: false, d: false });
-    
-    // 💡 2. onKeyDown/onKeyUpの代わりにwindow全体でキーイベントを捕捉
-    //      DOM要素に直接 onKeyDown を設定する必要はありません
+    const playerPosRef = useRef<{ x: number; y: number }>(coordinates);
+
     useEffect(() => {
-        // キーの状態を更新するヘルパー関数
+        playerPosRef.current = coordinates;
+    }, [coordinates]);
+
+    useEffect(() => {
         const handleKey = (key: string, isPressed: boolean) => {
             const lowerKey = key.toLowerCase();
             if (keysPressed.current.hasOwnProperty(lowerKey)) {
@@ -38,83 +45,164 @@ export default function PlayingScreen(props: PlayingScreenProps) {
             }
         };
 
-        const handleKeyDown = (e: KeyboardEvent) => {
-            handleKey(e.key, true);
-        };
-
-        const handleKeyUp = (e: KeyboardEvent) => {
-            handleKey(e.key, false);
-        };
+        const handleKeyDown = (e: KeyboardEvent) => handleKey(e.key, true);
+        const handleKeyUp = (e: KeyboardEvent) => handleKey(e.key, false);
 
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
-        /* もしこのコードを useEffect 外に書くと、コンポーネントが再レンダリングされるたびにリスナーが無限に増殖し続け、アプリケーションが壊れてしまいます。
-        依存配列が空の [] であるため、この useEffect はコンポーネントの全ライフサイクルを通じて設定 (1回) → 解除 (1回) だけが保証されます。 */
-
-        // クリーンアップ
+       
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
         };
     }, []);
 
-    // 💡 3. ゲームループの実装 (requestAnimationFrame)
+    // 開始時間をリセット
+    useEffect(() => {
+        startTimeRef.current = Date.now();
+    }, []);
+
     useEffect(() => {
         let animationFrameId: number;
+        let frameCounter: number = 0;
 
         const gameLoop = () => {
+            const now = Date.now();
+            const elapsed = now - startTimeRef.current;
+            setCurrentTime(elapsed);
+
+            // 1. プレイヤーの移動
             setCoordinates(prevCoords => {
                 let newX = prevCoords.x;
                 let newY = prevCoords.y;
 
-                // 押されているキーの状態を同時に参照し、座標を更新
-                // これにより斜め移動が可能になり、キーリピートの問題も解決します
                 if (keysPressed.current.w) newY -= PLAYER_SPEED;
                 if (keysPressed.current.s) newY += PLAYER_SPEED;
                 if (keysPressed.current.a) newX -= PLAYER_SPEED;
                 if (keysPressed.current.d) newX += PLAYER_SPEED;
 
-                // 境界線チェック (GameField内 (500x500) に留まるように制限)
-                const minPos = PLAYER_SIZE / 2; // 中心基準で考える
+                const minPos = PLAYER_SIZE / 2;
                 const maxPos = GAME_AREA_SIZE - PLAYER_SIZE / 2;
-
                 newX = Math.max(minPos, Math.min(newX, maxPos));
                 newY = Math.max(minPos, Math.min(newY, maxPos));
 
                 return { x: newX, y: newY };
             });
 
+            // 2. 弾の移動と衝突判定
+            const player = playerPosRef.current;
+            const playerRadius = PLAYER_SIZE / 2;
+            const bulletRadius = BULLET_SIZE / 2;
+            const hitRadius = playerRadius + bulletRadius;
+            const hitRadiusSquared = hitRadius * hitRadius;
+
+            let hitCountInThisFrame = 0;
+
+            const nextBullets = bulletsRef.current
+                .map((bullet) => ({
+                    ...bullet,
+                    x: bullet.x + bullet.vx,
+                    y: bullet.y + bullet.vy
+                }))
+                .filter((bullet) => {
+                    if (
+                        bullet.x < MIN_COORD ||
+                        bullet.x > MAX_COORD ||
+                        bullet.y < MIN_COORD ||
+                        bullet.y > MAX_COORD
+                    ) {
+                        return false;
+                    }
+
+                    const dx = bullet.x - player.x;
+                    const dy = bullet.y - player.y;
+                    const distSq = dx * dx + dy * dy;
+
+                    if (distSq <= hitRadiusSquared) {
+                        hitCountInThisFrame++;
+                        return false; 
+                    }
+                    return true;
+                });
+
+            // 3. 新しい弾の生成
+            frameCounter++;
+            if(frameCounter % BULLET_SPAWN_INTERVAL === 0) {
+                const newBullet = createNewBullet();
+                nextBullets.push(newBullet);
+                frameCounter = 0;
+            }
+
+            bulletsRef.current = nextBullets;
+            setBullets(nextBullets);
+
+            // 4. ライフ減少とゲームオーバー判定
+            if (hitCountInThisFrame > 0) {
+                const currentLives = livesRef.current - hitCountInThisFrame;
+                livesRef.current = Math.max(0, currentLives);
+                setLives(livesRef.current);
+
+                if (livesRef.current <= 0) {
+                    cancelAnimationFrame(animationFrameId);
+                    props.setSurvivalTime(elapsed); 
+                    props.setGameState("gameover");
+                    return; 
+                }
+            }
+
             animationFrameId = requestAnimationFrame(gameLoop);
         };
-
+        
         animationFrameId = requestAnimationFrame(gameLoop);
 
-        // クリーンアップ
         return () => cancelAnimationFrame(animationFrameId);
-    }, []); // マウント/アンマウント時のみ実行
+    }, [props]); 
     
     return (
-        <div
-            // 💡 onKeyDown/onKeyUpを削除し、キーボードイベントの処理はwindowで行う
-            // 💡 tabIndex も不要になりました（windowでキーイベントを捕捉するため）
-            className="w-full h-full relative"
-        >
-            {/* 💡 操作するおぶジェクト */}
+        <div className="w-full h-full relative overflow-hidden bg-gray-900">
+            {/* プレイヤー: シンプルな赤丸 */}
             <div
-                className="absolute bg-red-500 rounded-full"
+                className="absolute bg-red-500 rounded-full shadow-md"
                 style={{
                     width: PLAYER_SIZE,
                     height: PLAYER_SIZE,
-                    // 座標を適用 (中心が coordinates.x/y になるようオフセット)
                     left: coordinates.x - PLAYER_SIZE / 2, 
                     top: coordinates.y - PLAYER_SIZE / 2,
-                    pointerEvents: 'none' // マウス操作を妨げないように
+                    pointerEvents: 'none',
+                    zIndex: 20
                 }}
             />
             
-            {/* 座標 */}
-            <div className="absolute top-2 left-2 text-white bg-black/50 p-1 rounded z-10">
-                座標: ({coordinates.x.toFixed(0)}, {coordinates.y.toFixed(0)})
+            {/* 弾: シンプルな黄色丸 */}
+            {bullets.map(bullet => (
+                <div
+                    key={bullet.id}
+                    className="absolute bg-yellow-400 rounded-full shadow-sm"
+                    style={{
+                        width: BULLET_SIZE,
+                        height: BULLET_SIZE,
+                        left: bullet.x - 2.5,
+                        top: bullet.y - 2.5,
+                        pointerEvents: 'none',
+                        zIndex: 10
+                    }}
+                />
+            ))}
+
+            {/* タイム表示: 左下にシンプルに表示 */}
+            <div className="absolute bottom-4 left-4 z-30">
+                <p className="text-white font-bold text-xl drop-shadow-md">
+                    Time: {(currentTime / 1000).toFixed(2)}s
+                </p>
+            </div>
+
+            {/* ライフ表示: 右上にシンプルに表示 */}
+            <div className="absolute top-4 right-4 flex gap-1 z-30">
+                {Array.from({ length: Math.max(0, lives) }).map((_, i) => (
+                    <span key={i} className="text-2xl text-red-500 drop-shadow-md">
+                        ❤️
+                    </span>
+                ))}
             </div>
         </div>
     );
