@@ -1,9 +1,11 @@
+'use client'
+
 import React from "react";
 import { gameState } from "@/types/gameState";
 
 type GameOverScreenProps = {
   setGameState: React.Dispatch<React.SetStateAction<gameState>>;
-  survivalTime: number; // 💡 追加
+  survivalTime: number;
 };
 
 export default function GameOverScreen({ setGameState, survivalTime }: GameOverScreenProps) {
