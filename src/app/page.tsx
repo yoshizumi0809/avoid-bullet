@@ -1,3 +1,4 @@
+'use client';
 import GameField from "@/components/GameField";
 
 

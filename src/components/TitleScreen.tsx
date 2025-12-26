@@ -1,3 +1,5 @@
+'use client';
+
 import { ScreenModeProps } from "./ScreenMode";
 
 export default function TitleScreen(props: ScreenModeProps) {
