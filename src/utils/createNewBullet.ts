@@ -6,8 +6,6 @@ import { BULLET_SPEED, GAME_AREA_SIZE } from "@/constants/gameConfigs";
 import { calculateBulletVelocity } from "./calculateBulletVelocity";
 
 export const createNewBullet = (): Bullet => {
-    // ※注意: もし type定義で id: string にしている場合は .toString() が必要です
-    // const id = Date.now().toString(); 
     const id = Date.now().toString(); 
 
     const [initial_x, initial_y] = calculateSpawnPosition();
@@ -23,6 +21,6 @@ export const createNewBullet = (): Bullet => {
         y: initial_y,
         vx: vx,
         vy: vy,
-        type: 'normal', // 👈 これを追加！とりあえずデフォルトは 'normal' にします
+        type: 'normal',
     };
 }
