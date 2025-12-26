@@ -1,10 +1,10 @@
 export type BulletType = 'normal' | 'homing';
 
 export interface Bullet {
-    id: string; // または number
+    id: string;
     x: number;
     y: number;
     vx: number;
     vy: number;
-    type: BulletType; // 👈 これを追加！
+    type: BulletType;
 }

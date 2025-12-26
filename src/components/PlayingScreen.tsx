@@ -219,7 +219,6 @@ export default function PlayingScreen(props: PlayingScreenProps) {
                     style={{
                         width: BULLET_SIZE,
                         height: BULLET_SIZE,
-                        // 正確な中心座標にするため、サイズ/2 を引く形に修正
                         left: bullet.x - BULLET_SIZE / 2,
                         top: bullet.y - BULLET_SIZE / 2,
                         pointerEvents: 'none',

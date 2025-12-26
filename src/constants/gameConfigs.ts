@@ -17,8 +17,8 @@ export const BULLET_SPAWN_INTERVAL = 10;
 export const BULLET_SPEED = 6; 
 
 // ホーミング弾の設定 (New!)
-export const HOMING_BULLET_SPEED = 1; // 追尾弾は少し遅めにする
-export const HOMING_PROBABILITY = 0.1; // 20%の確率で出現 (0.0 〜 1.0)
+export const HOMING_BULLET_SPEED = 1;
+export const HOMING_PROBABILITY = 0.1;
 
 
 export const INITIAL_LIVES = 5; 

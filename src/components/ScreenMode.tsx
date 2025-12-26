@@ -4,12 +4,10 @@ import { gameState } from "@/types/gameState";
 import TitleScreen from "./TitleScreen";
 import PlayingScreen from "./PlayingScreen";
 import GameOverScreen from "./GameOverScreen";
-// 💡 Dispatch と SetStateAction をインポートに追加
 import { useState, Dispatch, SetStateAction } from "react"; 
 
 export type ScreenModeProps = {
     gameState: gameState; 
-    // 💡 ここを修正！ (単純な関数ではなく、Reactのステート更新用型にする)
     setGameState: Dispatch<SetStateAction<gameState>>;
     gameFieldRef: React.RefObject<HTMLDivElement|null>;
 };
