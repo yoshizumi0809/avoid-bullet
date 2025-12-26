@@ -9,7 +9,6 @@ import { useState, Dispatch, SetStateAction } from "react";
 
 export type ScreenModeProps = {
     gameState: gameState; 
-    // 💡 ここを修正！ (単純な関数ではなく、Reactのステート更新用型にする)
     setGameState: Dispatch<SetStateAction<gameState>>;
     gameFieldRef: React.RefObject<HTMLDivElement|null>;
 };
