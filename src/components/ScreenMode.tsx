@@ -4,18 +4,19 @@ import { gameState } from "@/types/gameState";
 import TitleScreen from "./TitleScreen";
 import PlayingScreen from "./PlayingScreen";
 import GameOverScreen from "./GameOverScreen";
-import { useState } from "react"; // useStateを追加
+// 💡 Dispatch と SetStateAction をインポートに追加
+import { useState, Dispatch, SetStateAction } from "react"; 
 
 export type ScreenModeProps = {
     gameState: gameState; 
-    setGameState: (state: gameState) => void;
+    // 💡 ここを修正！ (単純な関数ではなく、Reactのステート更新用型にする)
+    setGameState: Dispatch<SetStateAction<gameState>>;
     gameFieldRef: React.RefObject<HTMLDivElement|null>;
 };
 
 export default function ScreenMode(props: ScreenModeProps){
     const {gameState, setGameState, gameFieldRef} = props;
     
-    // 💡 追加: 生存時間を管理するState
     const [survivalTime, setSurvivalTime] = useState(0);
 
     switch (gameState) {
@@ -30,7 +31,7 @@ export default function ScreenMode(props: ScreenModeProps){
                     gameState={gameState} 
                     setGameState={setGameState} 
                     gameFieldRef={gameFieldRef}
-                    setSurvivalTime={setSurvivalTime} // 💡 時間セット関数を渡す
+                    setSurvivalTime={setSurvivalTime}
                 />
             );
         
@@ -38,7 +39,7 @@ export default function ScreenMode(props: ScreenModeProps){
             return (
                 <GameOverScreen 
                     setGameState={setGameState} 
-                    survivalTime={survivalTime} // 💡 記録した時間を渡す
+                    survivalTime={survivalTime}
                 />
             );
             

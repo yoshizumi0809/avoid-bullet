@@ -21,7 +21,7 @@ import { createNewBullet } from "@/utils/createNewBullet";
 type PlayingScreenProps = {
     gameState: gameState;
     setGameState: React.Dispatch<React.SetStateAction<gameState>>;
-    gameFieldRef: React.RefObject<HTMLDivElement>;
+    gameFieldRef: React.RefObject<HTMLDivElement | null>;
     setSurvivalTime: (time: number) => void;
 };
 
