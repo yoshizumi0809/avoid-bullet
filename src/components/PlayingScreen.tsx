@@ -196,7 +196,6 @@ export default function PlayingScreen(props: PlayingScreenProps) {
     
     return (
         <div className="w-full h-full relative overflow-hidden bg-gray-900">
-            {/* プレイヤー: シンプルな赤丸 */}
             <div
                 className="absolute bg-red-500 rounded-full shadow-md"
                 style={{
@@ -209,7 +208,6 @@ export default function PlayingScreen(props: PlayingScreenProps) {
                 }}
             />
             
-            {/* 弾: タイプによって色を変える */}
             {bullets.map(bullet => (
                 <div
                     key={bullet.id}
@@ -219,7 +217,6 @@ export default function PlayingScreen(props: PlayingScreenProps) {
                     style={{
                         width: BULLET_SIZE,
                         height: BULLET_SIZE,
-                        // 正確な中心座標にするため、サイズ/2 を引く形に修正
                         left: bullet.x - BULLET_SIZE / 2,
                         top: bullet.y - BULLET_SIZE / 2,
                         pointerEvents: 'none',
@@ -228,14 +225,12 @@ export default function PlayingScreen(props: PlayingScreenProps) {
                 />
             ))}
 
-            {/* タイム表示: 左下にシンプルに表示 */}
             <div className="absolute bottom-4 left-4 z-30">
                 <p className="text-white font-bold text-xl drop-shadow-md">
                     Time: {(currentTime / 1000).toFixed(2)}s
                 </p>
             </div>
 
-            {/* ライフ表示: 右上にシンプルに表示 */}
             <div className="absolute top-4 right-4 flex gap-1 z-30">
                 {Array.from({ length: Math.max(0, lives) }).map((_, i) => (
                     <span key={i} className="text-2xl text-red-500 drop-shadow-md">
